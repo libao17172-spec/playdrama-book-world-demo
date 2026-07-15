@@ -1,5 +1,6 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { ContactShadows, Float, Html, Sky } from '@react-three/drei';
+import { Bloom, EffectComposer, N8AO, Noise, Vignette } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -197,6 +198,30 @@ function ZoneLandmark({ zone, index }) {
 function PropShape({ entity, color }) {
   const common = <meshStandardMaterial color={color} roughness={0.65} metalness={0.12} />;
   switch (entity.propType) {
+    case 'workbench': return <group>
+      <mesh position={[0, 0.92, 0]} castShadow><boxGeometry args={[2.5, 0.18, 1.15]} /><meshStandardMaterial color="#765036" roughness={0.82} /></mesh>
+      {[-0.92, 0.92].map((x) => <mesh key={x} position={[x, 0.43, 0]} castShadow><boxGeometry args={[0.16, 0.86, 0.86]} /><meshStandardMaterial color="#4c382a" roughness={0.9} /></mesh>)}
+      <mesh position={[-0.52, 1.13, 0.02]} rotation={[0.04, -0.3, 0]} castShadow><boxGeometry args={[0.82, 0.11, 0.62]} /><meshStandardMaterial color="#e1d3ad" roughness={0.9} /></mesh>
+      <mesh position={[0.55, 1.18, 0]} rotation={[0, 0, -0.35]} castShadow><cylinderGeometry args={[0.07, 0.07, 1.15, 10]} /><meshStandardMaterial color="#7a684b" metalness={0.25} /></mesh>
+      <mesh position={[0.75, 1.48, 0]} rotation={[0, 0, 0.4]} castShadow><boxGeometry args={[0.52, 0.22, 0.25]} /><meshStandardMaterial color="#3d4f48" roughness={0.65} /></mesh>
+    </group>;
+    case 'nameplate': return <group>
+      <mesh position={[0, 0.4, 0]} castShadow><cylinderGeometry args={[0.62, 0.78, 0.8, 20]} /><meshStandardMaterial color="#716b5d" roughness={0.82} /></mesh>
+      <mesh position={[0, 1.24, 0]} castShadow><boxGeometry args={[1.65, 0.94, 0.18]} /><meshStandardMaterial color="#ad8647" metalness={0.55} roughness={0.34} /></mesh>
+      <mesh position={[0, 1.24, -0.11]}><planeGeometry args={[1.38, 0.67]} /><meshStandardMaterial color="#d6bd75" metalness={0.35} roughness={0.4} /></mesh>
+      <mesh position={[0, 1.24, -0.13]}><torusGeometry args={[0.18, 0.025, 10, 30]} /><meshStandardMaterial color="#665430" metalness={0.65} /></mesh>
+    </group>;
+    case 'lens': return <group>
+      <mesh position={[0, 1.7, 0]} rotation={[0.15, 0, -0.35]} castShadow><cylinderGeometry args={[0.28, 0.38, 1.5, 18]} /><meshStandardMaterial color="#485755" metalness={0.48} roughness={0.4} /></mesh>
+      <mesh position={[-0.3, 1.86, 0]} rotation={[0.15, 0, -0.35]}><cylinderGeometry args={[0.38, 0.38, 0.12, 20]} /><meshStandardMaterial color="#c1a45d" metalness={0.7} roughness={0.3} /></mesh>
+      {[0, 2.08, 4.18].map((rotation) => <mesh key={rotation} position={[Math.sin(rotation) * 0.58, 0.67, Math.cos(rotation) * 0.58]} rotation={[0, 0, Math.sin(rotation) * 0.24]} castShadow><cylinderGeometry args={[0.055, 0.065, 1.35, 10]} /><meshStandardMaterial color="#4c4032" roughness={0.8} /></mesh>)}
+      <mesh position={[0, 1.05, 0]}><sphereGeometry args={[0.18, 16, 12]} />{common}</mesh>
+    </group>;
+    case 'bridge': return <group>
+      <mesh position={[0, 0.58, 0]} rotation={[0, 0, Math.PI / 2]} castShadow><torusGeometry args={[1.18, 0.34, 12, 28, Math.PI]} /><meshStandardMaterial color="#9a9484" roughness={0.96} /></mesh>
+      <mesh position={[0, 1.02, 0]} castShadow><boxGeometry args={[2.6, 0.2, 1.15]} /><meshStandardMaterial color="#aea795" roughness={0.95} /></mesh>
+      {[-1.2, 1.2].map((x) => <mesh key={x} position={[x, 1.45, 0]} castShadow><boxGeometry args={[0.12, 0.75, 1.18]} /><meshStandardMaterial color="#696657" roughness={0.9} /></mesh>)}
+    </group>;
     case 'lever': return <group><mesh rotation={[0, 0, -0.65]} position={[0, 1.25, 0]} castShadow><boxGeometry args={[0.25, 3.6, 0.25]} />{common}</mesh><mesh position={[0, 0.25, 0]} castShadow><cylinderGeometry args={[0.8, 1.05, 0.5, 8]} />{common}</mesh><mesh position={[-1.1, 2.5, 0]} castShadow><sphereGeometry args={[0.42, 12, 8]} />{common}</mesh></group>;
     case 'hourglass': return <group><mesh position={[0, 1.15, 0]} castShadow><cylinderGeometry args={[0.7, 0.2, 1.7, 12]} /><meshStandardMaterial color="#d8b06e" transparent opacity={0.7} /></mesh><mesh position={[0, 1.15, 0]} rotation={[Math.PI, 0, 0]} castShadow><cylinderGeometry args={[0.7, 0.2, 1.7, 12]} /><meshStandardMaterial color="#d8b06e" transparent opacity={0.7} /></mesh><mesh position={[0, 0.25, 0]}><cylinderGeometry args={[0.9, 0.9, 0.18, 16]} />{common}</mesh><mesh position={[0, 2.05, 0]}><cylinderGeometry args={[0.9, 0.9, 0.18, 16]} />{common}</mesh></group>;
     case 'bookshelf': return <group><mesh position={[0, 1.5, 0]} castShadow><boxGeometry args={[2.5, 3, 0.6]} /><meshStandardMaterial color="#684a35" /></mesh>{[-0.75, -0.25, 0.25, 0.75].map((x) => <mesh key={x} position={[x, 1.45, -0.34]}><boxGeometry args={[0.34, 1.8, 0.24]} /><meshStandardMaterial color={x > 0 ? '#b9824d' : '#4d7581'} /></mesh>)}</group>;
@@ -207,7 +232,7 @@ function PropShape({ entity, color }) {
     case 'character': return <group><mesh position={[0, 1.25, 0]}><capsuleGeometry args={[0.36, 1.2, 6, 10]} />{common}</mesh><mesh position={[0, 2.2, 0]}><sphereGeometry args={[0.38, 12, 10]} /><meshStandardMaterial color="#c99c7a" /></mesh></group>;
     case 'letter': return <group><mesh position={[0, 1, 0]} rotation={[-0.3, 0.2, 0]}><boxGeometry args={[1.5, 0.08, 1]} /><meshStandardMaterial color="#e9dfc7" /></mesh><mesh position={[0, 0.35, 0]}><boxGeometry args={[2, 0.7, 1.5]} /><meshStandardMaterial color="#5b4638" /></mesh></group>;
     case 'pavilion': return <StreetBuilding position={[0, 0, 0]} size={[3.6, 3.8, 3.3]} color="#c8c2a2" roof="#4e6953" />;
-    default: return <group><mesh position={[0, 0.8, 0]} castShadow><dodecahedronGeometry args={[0.9, 0]} />{common}</mesh><mesh position={[0, 0.2, 0]}><cylinderGeometry args={[0.8, 1, 0.4, 8]} />{common}</mesh></group>;
+    default: return <group><mesh position={[0, 0.85, 0]} castShadow><cylinderGeometry args={[0.48, 0.62, 1.7, 18]} />{common}</mesh><mesh position={[0, 1.72, 0]}><sphereGeometry args={[0.16, 16, 12]} /><meshStandardMaterial color="#d5bd71" emissive="#d5bd71" emissiveIntensity={0.22} /></mesh></group>;
   }
 }
 
@@ -300,10 +325,16 @@ function World({ pack, nearbyId, guidance, onPropClick, hideLabels }) {
 }
 
 export function WorldCanvas({ pack, paused, nearby, guidance, onZone, onDiscover, onNear, onInteract, onPropClick, onPlayerUpdate, resetSignal }) {
-  return <Canvas className="world-canvas" shadows dpr={[1, 1.5]} camera={{ position: [0, 4, 24], fov: 44, near: 0.1, far: 150 }} gl={{ antialias: true, powerPreference: 'high-performance' }} onCreated={({ gl }) => { gl.domElement.dataset.testid = 'world-canvas'; gl.outputColorSpace = THREE.SRGBColorSpace; gl.toneMapping = THREE.ACESFilmicToneMapping; gl.toneMappingExposure = 1.14; }}>
+  return <Canvas className="world-canvas" shadows dpr={[1, 1.5]} camera={{ position: [0, 4, 24], fov: 44, near: 0.1, far: 150 }} gl={{ antialias: true, powerPreference: 'high-performance' }} onCreated={({ gl }) => { gl.domElement.dataset.testid = 'world-canvas'; gl.outputColorSpace = THREE.SRGBColorSpace; gl.toneMapping = THREE.ACESFilmicToneMapping; gl.toneMappingExposure = 1.14; gl.shadowMap.type = THREE.PCFSoftShadowMap; }}>
     <Suspense fallback={null}>
       <World pack={pack} nearbyId={nearby?.id} guidance={guidance} onPropClick={onPropClick} hideLabels={paused} />
       <Player key={pack.id} pack={pack} paused={paused} onZone={onZone} onDiscover={onDiscover} onNear={onNear} onInteract={onInteract} onUpdate={onPlayerUpdate} resetSignal={resetSignal} />
+      <EffectComposer multisampling={2} resolutionScale={0.85}>
+        <N8AO quality="medium" aoRadius={2.6} distanceFalloff={0.9} intensity={1.7} halfRes />
+        <Bloom mipmapBlur intensity={0.18} luminanceThreshold={0.82} luminanceSmoothing={0.3} />
+        <Noise opacity={0.018} premultiply />
+        <Vignette eskil={false} offset={0.24} darkness={0.38} />
+      </EffectComposer>
     </Suspense>
   </Canvas>;
 }
