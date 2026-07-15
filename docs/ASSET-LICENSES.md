@@ -1,6 +1,6 @@
 # 书境 Demo 资产授权台账
 
-台账更新日期为 2026-07-15。首版场景没有下载第三方3D模型、贴图、字体和动画，人物、建筑、树木、道路、地标、道具、图标与动效均由项目代码生成。直接采购费用为0元。
+台账更新日期为 2026-07-15。建筑、树木、道路、地标、道具、图标与动效由项目代码生成；第三人称玩家使用 Quaternius 发布的 CC0 模型与动画。直接采购费用为0元。
 
 | 资产名称 | 使用位置 | 来源地址 | 作者或发布方 | 许可证 | 内部演示 | 商业使用 | 可修改 | 署名 | 下载或生成日期 | 本地文件或副本 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -9,7 +9,7 @@
 | React Three Fiber | React与Three.js连接层 | https://github.com/pmndrs/react-three-fiber | Poimandres | MIT | 允许 | 允许 | 允许 | 保留许可 | 2026-07-15 | 包元数据及 `public/licenses/React-MIT.txt` |
 | React Three Drei | 3D辅助组件 | https://github.com/pmndrs/drei | Poimandres | MIT | 允许 | 允许 | 允许 | 保留许可 | 2026-07-15 | `public/licenses/React-Three-Drei-MIT.txt` |
 | Vite | 本地开发与构建 | https://github.com/vitejs/vite | VoidZero Inc.及贡献者 | MIT | 允许 | 允许 | 允许 | 保留许可 | 2026-07-15 | `public/licenses/Vite-MIT.txt` |
-| 程序化低多边形人物 | 第三人称玩家 | 本项目原创 | 星际互动 PlayDrama | 项目自有 | 允许 | 允许 | 允许 | 无 | 2026-07-15 | `src/components/WorldCanvas.jsx` |
+| Ultimate Modular Men：Suit | 第三人称玩家与行走动画 | https://quaternius.com/packs/ultimatemodularcharacters.html | Quaternius | CC0 1.0 | 允许 | 允许 | 允许 | 无要求 | 2026-07-15 | `public/assets/models/suit.gltf`；许可见 `public/licenses/Quaternius-CC0.txt` |
 | 程序化建筑与景观 | 两个3D世界 | 本项目原创 | 星际互动 PlayDrama | 项目自有 | 允许 | 允许 | 允许 | 无 | 2026-07-15 | `src/components/WorldCanvas.jsx` |
 | 书印图标 | 浏览器图标 | 本项目原创 | 星际互动 PlayDrama | 项目自有 | 允许 | 允许 | 允许 | 无 | 2026-07-15 | `public/favicon.svg` |
 | 豆包语音预留位 | 区域与深入讲解 | 尚未接入 | 火山引擎待申请 | 待取得接口权限后确认 | 当前仅文字 | 待确认 | 可替换提供方 | 待确认 | 2026-07-15 | `src/core/narration-controller.js` |

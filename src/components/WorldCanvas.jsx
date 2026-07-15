@@ -1,12 +1,14 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { ContactShadows, Float, Html, Sky } from '@react-three/drei';
+import { ContactShadows, Float, Html, Sky, useAnimations, useGLTF } from '@react-three/drei';
 import { Bloom, EffectComposer, N8AO, Noise, Vignette } from '@react-three/postprocessing';
 import * as THREE from 'three';
+import { clone as cloneSkeleton } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 
 const temp = new THREE.Vector3();
 const forward = new THREE.Vector3();
 const right = new THREE.Vector3();
+const SUIT_MODEL_URL = `${import.meta.env.BASE_URL}assets/models/suit.gltf`;
 
 function v3(position) { return new THREE.Vector3(position[0], position[1], position[2]); }
 
@@ -34,18 +36,36 @@ function isBlocked(position, pack) {
 function Player({ pack, paused, onZone, onDiscover, onNear, onInteract, onUpdate, resetSignal }) {
   const group = useRef();
   const body = useRef();
-  const leftArm = useRef();
-  const rightArm = useRef();
-  const leftLeg = useRef();
-  const rightLeg = useRef();
+  const avatarRoot = useRef();
   const keys = useRef(new Set());
   const safe = useRef(v3(pack.spawn));
   const yaw = useRef(0);
   const pitch = useRef(0.1);
-  const distance = useRef(9.5);
+  const distance = useRef(6.2);
   const drag = useRef(false);
   const lastSense = useRef(0);
+  const activeAnimation = useRef('');
   const { camera, gl } = useThree();
+  const { scene, animations } = useGLTF(SUIT_MODEL_URL);
+  const avatar = useMemo(() => {
+    const instance = cloneSkeleton(scene);
+    instance.traverse((object) => {
+      if (object.name === 'Pistol') object.visible = false;
+      if (object.isMesh) {
+        object.castShadow = true;
+        object.receiveShadow = true;
+      }
+    });
+    return instance;
+  }, [scene]);
+  const { actions } = useAnimations(animations, avatarRoot);
+
+  useEffect(() => {
+    const idle = actions.Idle_Neutral || actions.Idle;
+    idle?.reset().fadeIn(0.2).play();
+    activeAnimation.current = idle === actions.Idle_Neutral ? 'Idle_Neutral' : 'Idle';
+    return () => Object.values(actions).forEach((action) => action?.stop());
+  }, [actions]);
 
   useEffect(() => {
     const down = (event) => {
@@ -64,7 +84,7 @@ function Player({ pack, paused, onZone, onDiscover, onNear, onInteract, onUpdate
     };
     const wheel = (event) => {
       if (event.target !== gl.domElement) return;
-      distance.current = THREE.MathUtils.clamp(distance.current + event.deltaY * 0.006, 7.2, 13.5);
+      distance.current = THREE.MathUtils.clamp(distance.current + event.deltaY * 0.006, 5.8, 12);
     };
     window.addEventListener('keydown', down);
     window.addEventListener('keyup', up);
@@ -101,10 +121,12 @@ function Player({ pack, paused, onZone, onDiscover, onNear, onInteract, onUpdate
         }
       }
     }
-    const swing = moving ? Math.sin(state.clock.elapsedTime * 9) * 0.42 : 0;
-    leftArm.current.rotation.x = swing; rightArm.current.rotation.x = -swing;
-    leftLeg.current.rotation.x = -swing; rightLeg.current.rotation.x = swing;
-    body.current.position.y = -0.82 + (moving ? Math.abs(Math.sin(state.clock.elapsedTime * 9)) * 0.025 : 0);
+    const nextAnimation = moving ? 'Walk' : (actions.Idle_Neutral ? 'Idle_Neutral' : 'Idle');
+    if (actions[nextAnimation] && activeAnimation.current !== nextAnimation) {
+      actions[activeAnimation.current]?.fadeOut(0.18);
+      actions[nextAnimation].reset().fadeIn(0.18).play();
+      activeAnimation.current = nextAnimation;
+    }
 
     const player = group.current.position;
     const cp = new THREE.Vector3(
@@ -132,21 +154,16 @@ function Player({ pack, paused, onZone, onDiscover, onNear, onInteract, onUpdate
 
   return (
     <group ref={group} position={pack.spawn}>
-      <group ref={body} position={[0, -0.82, 0]}>
-        <mesh position={[0, 1.43, 0]} scale={[0.82, 1.35, 0.58]} castShadow><capsuleGeometry args={[0.28, 0.55, 10, 18]} /><meshStandardMaterial color="#202827" roughness={0.92} /></mesh>
-        <mesh position={[0, 0.88, 0.03]} scale={[1, 1.35, 0.72]} castShadow><cylinderGeometry args={[0.24, 0.36, 0.78, 12]} /><meshStandardMaterial color="#252d2c" roughness={0.96} /></mesh>
-        <mesh position={[0, 1.71, -0.27]} castShadow><boxGeometry args={[0.5, 0.42, 0.035]} /><meshStandardMaterial color="#171d1c" roughness={0.9} /></mesh>
-        <mesh position={[0, 2.15, 0]} scale={[0.86, 1.08, 0.9]} castShadow><sphereGeometry args={[0.2, 24, 18]} /><meshStandardMaterial color="#c48f69" roughness={0.9} /></mesh>
-        <mesh position={[0, 2.22, 0.035]} scale={[0.9, 0.72, 0.92]} castShadow><sphereGeometry args={[0.215, 24, 16, 0, Math.PI * 2, 0, 1.5]} /><meshStandardMaterial color="#30251f" roughness={0.95} /></mesh>
-        <mesh position={[0, 1.88, 0]} castShadow><cylinderGeometry args={[0.12, 0.13, 0.18, 16]} /><meshStandardMaterial color="#d9cfc0" roughness={0.85} /></mesh>
-        <group ref={leftArm} position={[-0.31, 1.68, 0]}><mesh position={[0, -0.4, 0]} castShadow><capsuleGeometry args={[0.075, 0.66, 8, 12]} /><meshStandardMaterial color="#202827" roughness={0.92} /></mesh><mesh position={[0, -0.82, 0]} castShadow><sphereGeometry args={[0.085, 12, 10]} /><meshStandardMaterial color="#b77f5f" /></mesh></group>
-        <group ref={rightArm} position={[0.31, 1.68, 0]}><mesh position={[0, -0.4, 0]} castShadow><capsuleGeometry args={[0.075, 0.66, 8, 12]} /><meshStandardMaterial color="#202827" roughness={0.92} /></mesh><mesh position={[0, -0.82, 0]} castShadow><sphereGeometry args={[0.085, 12, 10]} /><meshStandardMaterial color="#b77f5f" /></mesh></group>
-        <group ref={leftLeg} position={[-0.14, 0.68, 0]}><mesh position={[0, -0.34, 0]} castShadow><capsuleGeometry args={[0.095, 0.58, 8, 12]} /><meshStandardMaterial color="#191e1e" roughness={0.9} /></mesh><mesh position={[0, -0.71, -0.055]} castShadow><boxGeometry args={[0.2, 0.13, 0.38]} /><meshStandardMaterial color="#171513" roughness={0.8} /></mesh></group>
-        <group ref={rightLeg} position={[0.14, 0.68, 0]}><mesh position={[0, -0.34, 0]} castShadow><capsuleGeometry args={[0.095, 0.58, 8, 12]} /><meshStandardMaterial color="#191e1e" roughness={0.9} /></mesh><mesh position={[0, -0.71, -0.055]} castShadow><boxGeometry args={[0.2, 0.13, 0.38]} /><meshStandardMaterial color="#171513" roughness={0.8} /></mesh></group>
+      <group ref={body} position={[0, 0.03, 0]} rotation={[0, Math.PI, 0]}>
+        <group ref={avatarRoot} scale={1.12}>
+          <primitive object={avatar} />
+        </group>
       </group>
     </group>
   );
 }
+
+useGLTF.preload(SUIT_MODEL_URL);
 
 function Tree({ position, tint = '#547053', scale = 1 }) {
   return <group position={position} scale={scale}>
@@ -166,6 +183,24 @@ function FacadeWindow({ position, warm = false, balcony = false }) {
   </group>;
 }
 
+function ShopSign({ name, width }) {
+  const texture = useMemo(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024; canvas.height = 160;
+    const context = canvas.getContext('2d');
+    context.fillStyle = '#29463f'; context.fillRect(0, 0, canvas.width, canvas.height);
+    context.strokeStyle = '#cba14d'; context.lineWidth = 10; context.strokeRect(8, 8, canvas.width - 16, canvas.height - 16);
+    context.fillStyle = '#f3dfad'; context.font = '600 66px "Songti SC", serif'; context.textAlign = 'center'; context.textBaseline = 'middle';
+    context.fillText(name, canvas.width / 2, canvas.height / 2 + 2);
+    const signTexture = new THREE.CanvasTexture(canvas);
+    signTexture.colorSpace = THREE.SRGBColorSpace;
+    signTexture.anisotropy = 8;
+    return signTexture;
+  }, [name]);
+  useEffect(() => () => texture.dispose(), [texture]);
+  return <mesh position={[0, 2.05, 0.08]} castShadow><planeGeometry args={[Math.min(width - 1, 4.8), 0.62]} /><meshStandardMaterial map={texture} roughness={0.78} emissive="#8f6d2d" emissiveIntensity={0.18} /></mesh>;
+}
+
 function StreetBuilding({ position, size, color = '#d8c7a1', roof = '#384b46', rotation = 0, shop = false, name = '' }) {
   const width = size[0]; const height = size[1]; const depth = size[2];
   const columns = Math.max(2, Math.floor(width / 2.2));
@@ -178,11 +213,18 @@ function StreetBuilding({ position, size, color = '#d8c7a1', roof = '#384b46', r
     <mesh position={[0, 1.75, depth / 2 + 0.06]} castShadow><boxGeometry args={[width + 0.12, 0.16, 0.26]} /><meshStandardMaterial color="#c4af8d" roughness={0.92} /></mesh>
     {Array.from({ length: floors }, (_, floor) => windowXs.map((x, index) => <FacadeWindow key={`${floor}-${index}`} position={[x, 2.55 + floor * 1.68, depth / 2 + 0.08]} warm={(floor + index) % 4 === 0} balcony={floor === 0 && index === Math.floor(columns / 2)} />))}
     {shop ? <group position={[0, 0, depth / 2 + 0.11]}>
-      <mesh position={[0, 0.82, 0]}><planeGeometry args={[width - 0.65, 1.45]} /><meshStandardMaterial color="#744631" roughness={0.75} /></mesh>
-      <mesh position={[0, 1.62, 0.2]} rotation={[0.18, 0, 0]} castShadow><boxGeometry args={[width - 0.35, 0.14, 1.05]} /><meshStandardMaterial color="#b8893e" roughness={0.85} /></mesh>
-      <mesh position={[0, 0.96, 0.035]}><planeGeometry args={[width - 1.05, 0.92]} /><meshStandardMaterial color="#8f603c" emissive="#ffb85b" emissiveIntensity={0.6} roughness={0.25} /></mesh>
-      <mesh position={[0, 1.96, 0.02]}><planeGeometry args={[Math.min(width - 1, 4.8), 0.55]} /><meshStandardMaterial color="#2e4b42" roughness={0.85} /></mesh>
-      {name && <Html center position={[0, 1.96, 0.08]} distanceFactor={10} style={{ pointerEvents: 'none' }}><div className="shop-sign">{name}</div></Html>}
+      <mesh position={[0, 0.88, 0]}><planeGeometry args={[width - 0.65, 1.58]} /><meshStandardMaterial color="#5e3d2d" roughness={0.8} /></mesh>
+      <mesh position={[0, 1.68, 0.34]} rotation={[0.18, 0, 0]} castShadow><boxGeometry args={[width - 0.28, 0.15, 1.35]} /><meshStandardMaterial color="#c99a38" roughness={0.82} /></mesh>
+      {[-0.3, -0.1, 0.1, 0.3].map((ratio) => <mesh key={ratio} position={[ratio * width, 1.68, 0.43]} rotation={[0.18, 0, 0]}><boxGeometry args={[0.045, 0.16, 1.3]} /><meshStandardMaterial color="#f0d178" roughness={0.75} /></mesh>)}
+      {[-width * 0.28, width * 0.28].map((x) => <group key={x} position={[x, 0.88, 0.045]}>
+        <mesh><planeGeometry args={[Math.max(1.45, width * 0.25), 1.16]} /><meshStandardMaterial color="#895638" emissive="#ffb45b" emissiveIntensity={0.75} roughness={0.22} /></mesh>
+        <mesh position={[0, 0, 0.025]}><boxGeometry args={[0.045, 1.16, 0.035]} /><meshStandardMaterial color="#3e342b" /></mesh>
+        <mesh position={[0, 0, 0.026]}><boxGeometry args={[Math.max(1.45, width * 0.25), 0.045, 0.035]} /><meshStandardMaterial color="#3e342b" /></mesh>
+        <mesh position={[0, -0.48, 0.12]} castShadow><boxGeometry args={[Math.max(1.2, width * 0.2), 0.18, 0.35]} /><meshStandardMaterial color="#bca47e" roughness={0.88} /></mesh>
+      </group>)}
+      <mesh position={[0, 0.86, 0.08]} castShadow><boxGeometry args={[1.12, 1.7, 0.16]} /><meshStandardMaterial color="#37443f" roughness={0.72} /></mesh>
+      <mesh position={[0, 0.94, 0.17]}><planeGeometry args={[0.72, 1.17]} /><meshStandardMaterial color="#8f603c" emissive="#ffbc68" emissiveIntensity={0.36} roughness={0.28} /></mesh>
+      {name && <ShopSign name={name} width={width} />}
     </group> : <mesh position={[0, 0.95, depth / 2 + 0.08]} castShadow><boxGeometry args={[1.05, 1.9, 0.16]} /><meshStandardMaterial color="#4b382b" roughness={0.9} /></mesh>}
     {[-width / 2 + 0.2, width / 2 - 0.2].map((x) => <mesh key={x} position={[x, height / 2, depth / 2 + 0.05]} castShadow><boxGeometry args={[0.24, height, 0.18]} /><meshStandardMaterial color="#eadfc9" roughness={0.95} /></mesh>)}
   </group>;
