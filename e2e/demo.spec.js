@@ -1,6 +1,9 @@
 import { expect, test } from '@playwright/test';
 
-const shot = (name) => `acceptance/screenshots/${name}.png`;
+const screenshotDirectory = process.env.PLAYWRIGHT_BASE_URL
+  ? 'test-results/online-screenshots'
+  : 'acceptance/screenshots';
+const shot = (name) => `${screenshotDirectory}/${name}.png`;
 
 test('完成纳瓦尔世界探索、深入互动、图谱和第二内容包切换', async ({ page, context }) => {
   const consoleErrors = [];
