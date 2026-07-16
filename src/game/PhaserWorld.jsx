@@ -28,7 +28,7 @@ function createScene(Phaser, pack, callbacksRef, controlRef) {
       }
 
       this.player = this.physics.add.sprite(world.spawn.x, world.spawn.y, 'player-away', 0)
-        .setScale(0.18).setDepth(world.spawn.y + 500).setCollideWorldBounds(true);
+        .setScale(0.18).setDepth(world.spawn.y + 500).setCollideWorldBounds(false);
       this.player.body.setSize(180, 250).setOffset(166, 720);
       this.facing = 'away';
       this.target = null;
