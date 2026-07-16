@@ -8,6 +8,8 @@ import { RelationshipGraph } from './components/RelationshipGraph.jsx';
 import { WorldCanvas } from './components/WorldCanvas.jsx';
 
 const progressStore = typeof window !== 'undefined' ? createProgressStore(window.localStorage) : null;
+const navalBackground = `${import.meta.env.BASE_URL}assets/backgrounds/naval-world-background-v1.png`;
+const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
 function DetailModal({ entity, zone, onClose, onPlay }) {
   return <div className="modal detail-modal" role="dialog" aria-label={`${entity.title}知识详情`}>
@@ -95,10 +97,19 @@ export function App() {
   const paused = Boolean(detail || showGraph || showHelp);
   const discoveredCount = progress.discovered.length;
   const targetAngle = guidance ? Math.atan2(guidance.position[0] - player.position[0], guidance.position[2] - player.position[2]) - player.yaw : 0;
+  const cinematic = pack.id === 'naval-almanack';
+  const sceneOffsetX = cinematic ? clamp(-(player.position[0] - pack.spawn[0]) * 0.16, -3.2, 3.2) : 0;
+  const sceneDepth = cinematic ? clamp((pack.spawn[2] - player.position[2]) * 0.005, -0.015, 0.07) : 0;
   return <main className="world-screen" style={{ '--accent': pack.theme.accent, '--ink': pack.theme.ink }}>
     <output data-testid="player-position" hidden>{JSON.stringify(player.position)}</output>
     <output data-testid="world-state" hidden>{JSON.stringify({ packId: pack.id, zoneId: currentZone?.id || null, nearbyId: nearby?.id || null, discovered: progress.discovered, deepened: progress.deepened, guidanceId: guidance?.id || null })}</output>
-    <WorldCanvas pack={pack} paused={paused} nearby={nearby} guidance={guidance} onZone={handleZone} onDiscover={handleDiscover} onNear={handleNear} onInteract={interactNearby} onPropClick={handlePropClick} onPlayerUpdate={setPlayer} resetSignal={resetSignal} />
+    {cinematic && <div className="cinematic-backdrop" aria-hidden="true" style={{ backgroundImage: `url(${navalBackground})`, transform: `translate3d(${sceneOffsetX}%, 0, 0) scale(${1.035 + sceneDepth})` }} />}
+    <WorldCanvas pack={pack} paused={paused} nearby={nearby} guidance={guidance} onZone={handleZone} onDiscover={handleDiscover} onNear={handleNear} onInteract={interactNearby} onPropClick={handlePropClick} onPlayerUpdate={setPlayer} resetSignal={resetSignal} cinematic={cinematic} />
+    {cinematic && <div className="cinematic-hotspots" aria-label="场景知识节点">
+      <button className="scene-hotspot scene-hotspot-clock" onClick={() => openDetail(pack.entities[8])}><i /> <span>欲望</span></button>
+      <button className="scene-hotspot scene-hotspot-library" onClick={() => openDetail(pack.entities[5])}><i /> <span>阅读</span></button>
+      <button className="scene-hotspot scene-hotspot-workshop" onClick={() => openDetail(pack.entities[0])}><i /> <span>专长</span></button>
+    </div>}
     <header className="world-hud top"><button className="brand world-brand" onClick={() => { controller.stop(); setScreen('entry'); }}><span className="brand-seal">书</span><span><b>{pack.worldName}</b><small>{pack.title}</small></span></button><div className="hud-actions"><span className="audio-placeholder">◌ 豆包语音待接入</span><button onClick={() => setShowHelp(true)}>？ 操作</button><button className="graph-button" onClick={() => setShowGraph(true)}>⌘ {pack.graphMode === 'character' ? '人物关系' : '知识图谱'} <span>{discoveredCount}/{pack.entities.length}</span></button></div></header>
     <aside className="quest-card"><span className="eyebrow">CURRENT JOURNEY</span><h2>{currentZone?.name || '中央入口广场'}</h2><p>{currentZone ? currentZone.landmark : '沿着道路，选择一个知识区域开始探索。'}</p><div className="quest-progress"><span style={{ width: `${(discoveredCount / pack.entities.length) * 100}%` }} /></div><small>已发现 {discoveredCount} · 已深入 {progress.deepened.length}</small></aside>
     <div className="mini-compass"><span>N</span><i style={{ transform: `rotate(${player.yaw}rad)` }}>↑</i></div>

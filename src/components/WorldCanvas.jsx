@@ -33,7 +33,7 @@ function isBlocked(position, pack) {
   return false;
 }
 
-function Player({ pack, paused, onZone, onDiscover, onNear, onInteract, onUpdate, resetSignal }) {
+function Player({ pack, paused, onZone, onDiscover, onNear, onInteract, onUpdate, resetSignal, cinematic = false }) {
   const group = useRef();
   const body = useRef();
   const avatarRoot = useRef();
@@ -41,7 +41,7 @@ function Player({ pack, paused, onZone, onDiscover, onNear, onInteract, onUpdate
   const safe = useRef(v3(pack.spawn));
   const yaw = useRef(0);
   const pitch = useRef(0.1);
-  const distance = useRef(6.2);
+  const distance = useRef(cinematic ? 6.15 : 6.2);
   const drag = useRef(false);
   const lastSense = useRef(0);
   const activeAnimation = useRef('');
@@ -154,8 +154,8 @@ function Player({ pack, paused, onZone, onDiscover, onNear, onInteract, onUpdate
 
   return (
     <group ref={group} position={pack.spawn}>
-      <group ref={body} position={[0, 0.03, 0]} rotation={[0, Math.PI, 0]}>
-        <group ref={avatarRoot} scale={1.12}>
+      <group ref={body} position={[0, -0.87, 0]} rotation={[0, Math.PI, 0]}>
+        <group ref={avatarRoot} scale={cinematic ? 1.05 : 1.12}>
           <primitive object={avatar} />
         </group>
       </group>
@@ -164,6 +164,18 @@ function Player({ pack, paused, onZone, onDiscover, onNear, onInteract, onUpdate
 }
 
 useGLTF.preload(SUIT_MODEL_URL);
+
+function CinematicStage() {
+  return <>
+    <ambientLight intensity={1.15} />
+    <hemisphereLight args={['#f3d7ae', '#2b312d', 1.4]} />
+    <directionalLight position={[-6, 10, 8]} color="#ffd3a1" intensity={3.2} castShadow shadow-mapSize={[1024, 1024]} />
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} receiveShadow>
+      <circleGeometry args={[2.2, 48]} />
+      <shadowMaterial transparent opacity={0.28} color="#261c14" />
+    </mesh>
+  </>;
+}
 
 function Tree({ position, tint = '#547053', scale = 1 }) {
   return <group position={position} scale={scale}>
@@ -366,17 +378,17 @@ function World({ pack, nearbyId, guidance, onPropClick, hideLabels }) {
   </>;
 }
 
-export function WorldCanvas({ pack, paused, nearby, guidance, onZone, onDiscover, onNear, onInteract, onPropClick, onPlayerUpdate, resetSignal }) {
-  return <Canvas className="world-canvas" shadows dpr={[1, 1.5]} camera={{ position: [0, 4, 24], fov: 44, near: 0.1, far: 150 }} gl={{ antialias: true, powerPreference: 'high-performance' }} onCreated={({ gl }) => { gl.domElement.dataset.testid = 'world-canvas'; gl.outputColorSpace = THREE.SRGBColorSpace; gl.toneMapping = THREE.ACESFilmicToneMapping; gl.toneMappingExposure = 1.14; gl.shadowMap.type = THREE.PCFSoftShadowMap; }}>
+export function WorldCanvas({ pack, paused, nearby, guidance, onZone, onDiscover, onNear, onInteract, onPropClick, onPlayerUpdate, resetSignal, cinematic = false }) {
+  return <Canvas className={`world-canvas ${cinematic ? 'cinematic-canvas' : ''}`} shadows dpr={[1, 1.5]} camera={{ position: [0, 4, 24], fov: cinematic ? 38 : 44, near: 0.1, far: 150 }} gl={{ antialias: true, alpha: cinematic, powerPreference: 'high-performance' }} onCreated={({ gl }) => { gl.domElement.dataset.testid = 'world-canvas'; gl.outputColorSpace = THREE.SRGBColorSpace; gl.toneMapping = THREE.ACESFilmicToneMapping; gl.toneMappingExposure = cinematic ? 1.25 : 1.14; gl.shadowMap.type = THREE.PCFSoftShadowMap; if (cinematic) gl.setClearColor(0x000000, 0); }}>
     <Suspense fallback={null}>
-      <World pack={pack} nearbyId={nearby?.id} guidance={guidance} onPropClick={onPropClick} hideLabels={paused} />
-      <Player key={pack.id} pack={pack} paused={paused} onZone={onZone} onDiscover={onDiscover} onNear={onNear} onInteract={onInteract} onUpdate={onPlayerUpdate} resetSignal={resetSignal} />
-      <EffectComposer multisampling={2} resolutionScale={0.85}>
+      {cinematic ? <CinematicStage /> : <World pack={pack} nearbyId={nearby?.id} guidance={guidance} onPropClick={onPropClick} hideLabels={paused} />}
+      <Player key={pack.id} pack={pack} paused={paused} onZone={onZone} onDiscover={onDiscover} onNear={onNear} onInteract={onInteract} onUpdate={onPlayerUpdate} resetSignal={resetSignal} cinematic={cinematic} />
+      {!cinematic && <EffectComposer multisampling={2} resolutionScale={0.85}>
         <N8AO quality="medium" aoRadius={2.6} distanceFalloff={0.9} intensity={1.7} halfRes />
         <Bloom mipmapBlur intensity={0.18} luminanceThreshold={0.82} luminanceSmoothing={0.3} />
         <Noise opacity={0.018} premultiply />
         <Vignette eskil={false} offset={0.24} darkness={0.38} />
-      </EffectComposer>
+      </EffectComposer>}
     </Suspense>
   </Canvas>;
 }
