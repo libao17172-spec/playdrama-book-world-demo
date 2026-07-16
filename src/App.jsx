@@ -9,6 +9,7 @@ import { WorldCanvas } from './components/WorldCanvas.jsx';
 
 const progressStore = typeof window !== 'undefined' ? createProgressStore(window.localStorage) : null;
 const navalBackground = `${import.meta.env.BASE_URL}assets/backgrounds/naval-world-background-v1.png`;
+const navalPlayer = `${import.meta.env.BASE_URL}assets/characters/victorian-player-walkcycle-v1.png`;
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
 function DetailModal({ entity, zone, onClose, onPlay }) {
@@ -38,6 +39,7 @@ export function App() {
   const [graphSelected, setGraphSelected] = useState(null);
   const [guidance, setGuidance] = useState(null);
   const [player, setPlayer] = useState({ position: pack.spawn, yaw: 0 });
+  const [playerMoving, setPlayerMoving] = useState(false);
   const [resetSignal, setResetSignal] = useState(0);
   const [audioState, setAudioState] = useState({ activeId: null, status: 'idle', text: '' });
   const [toast, setToast] = useState('');
@@ -91,6 +93,15 @@ export function App() {
     };
     window.addEventListener('keydown', key); return () => window.removeEventListener('keydown', key);
   }, [detail, screen, showHelp]);
+  useEffect(() => {
+    const movementKeys = new Set();
+    const moveKeys = new Set(['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright']);
+    const down = (event) => { const key = event.key.toLowerCase(); if (moveKeys.has(key)) { movementKeys.add(key); setPlayerMoving(true); } };
+    const up = (event) => { movementKeys.delete(event.key.toLowerCase()); if (!movementKeys.size) setPlayerMoving(false); };
+    const stop = () => { movementKeys.clear(); setPlayerMoving(false); };
+    window.addEventListener('keydown', down); window.addEventListener('keyup', up); window.addEventListener('blur', stop);
+    return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); window.removeEventListener('blur', stop); };
+  }, []);
   useEffect(() => { if (!toast) return; const timer = setTimeout(() => setToast(''), 2800); return () => clearTimeout(timer); }, [toast]);
 
   if (screen === 'entry') return <EntryScreen packs={contentPacks} initialId={pack.id} onEnter={enterPack} />;
@@ -105,6 +116,7 @@ export function App() {
     <output data-testid="world-state" hidden>{JSON.stringify({ packId: pack.id, zoneId: currentZone?.id || null, nearbyId: nearby?.id || null, discovered: progress.discovered, deepened: progress.deepened, guidanceId: guidance?.id || null })}</output>
     {cinematic && <div className="cinematic-backdrop" aria-hidden="true" style={{ backgroundImage: `url(${navalBackground})`, transform: `translate3d(${sceneOffsetX}%, 0, 0) scale(${1.035 + sceneDepth})` }} />}
     <WorldCanvas pack={pack} paused={paused} nearby={nearby} guidance={guidance} onZone={handleZone} onDiscover={handleDiscover} onNear={handleNear} onInteract={interactNearby} onPropClick={handlePropClick} onPlayerUpdate={setPlayer} resetSignal={resetSignal} cinematic={cinematic} />
+    {cinematic && <div className={`cinematic-player ${playerMoving ? 'moving' : ''}`} data-testid="cinematic-player" data-moving={playerMoving ? 'true' : 'false'} aria-hidden="true"><div className="cinematic-player-sprite" style={{ backgroundImage: `url(${navalPlayer})` }} /></div>}
     {cinematic && <div className="cinematic-hotspots" aria-label="场景知识节点">
       <button className="scene-hotspot scene-hotspot-clock" onClick={() => openDetail(pack.entities[8])}><i /> <span>欲望</span></button>
       <button className="scene-hotspot scene-hotspot-library" onClick={() => openDetail(pack.entities[5])}><i /> <span>阅读</span></button>

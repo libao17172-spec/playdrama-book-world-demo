@@ -109,3 +109,29 @@ test('3D世界达到目标帧率且界面反馈及时', async ({ page }) => {
   expect(Date.now() - feedbackStart).toBeLessThan(500);
   console.log(`PERFORMANCE averageFps=${frameResult.averageFps.toFixed(1)} longestLowRun=${frameResult.longestLowRun.toFixed(1)}ms graphFeedback=${Date.now() - feedbackStart}ms`);
 });
+
+test('写实人物持续行走且三个场景知识节点都可以交互', async ({ page }) => {
+  await page.goto('.');
+  await page.getByRole('button', { name: '进入「自由与判断之境」 →' }).click();
+
+  const player = page.getByTestId('cinematic-player');
+  await expect(player).toBeVisible();
+  await expect(player).toHaveAttribute('data-moving', 'false');
+  const start = JSON.parse(await page.getByTestId('player-position').textContent());
+
+  await page.keyboard.down('w');
+  await expect(player).toHaveAttribute('data-moving', 'true');
+  await page.waitForTimeout(950);
+  await page.screenshot({ path: shot('11-cinematic-walk-active') });
+  const moving = JSON.parse(await page.getByTestId('player-position').textContent());
+  expect(moving[2]).toBeLessThan(start[2] - 2);
+  await page.keyboard.up('w');
+  await expect(player).toHaveAttribute('data-moving', 'false');
+
+  for (const name of ['欲望', '阅读', '专长']) {
+    await page.getByRole('button', { name }).click();
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await expect(page.getByRole('dialog')).toContainText(name);
+    await page.getByRole('button', { name: '关闭详情' }).click();
+  }
+});

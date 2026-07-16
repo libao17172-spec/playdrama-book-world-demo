@@ -154,7 +154,7 @@ function Player({ pack, paused, onZone, onDiscover, onNear, onInteract, onUpdate
 
   return (
     <group ref={group} position={pack.spawn}>
-      <group ref={body} position={[0, -0.87, 0]} rotation={[0, Math.PI, 0]}>
+      <group ref={body} visible={!cinematic} position={[0, -0.87, 0]} rotation={[0, Math.PI, 0]}>
         <group ref={avatarRoot} scale={cinematic ? 1.05 : 1.12}>
           <primitive object={avatar} />
         </group>
