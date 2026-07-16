@@ -93,8 +93,24 @@ const lessonsById = {
   },
 };
 
+const world2dById = {
+  desire: { x: 410, y: 920, interactionRadius: 190, label: '钟楼下的欲望', featured: true },
+  reading: { x: 1160, y: 900, interactionRadius: 190, label: '拉鲁斯书店的阅读', featured: true },
+  'specific-knowledge': { x: 1900, y: 920, interactionRadius: 190, label: '工坊里的专长', featured: true },
+  accountability: { x: 2070, y: 1110, interactionRadius: 120, label: '署名与责任' },
+  leverage: { x: 1830, y: 1110, interactionRadius: 120, label: '能够复制的杠杆' },
+  'compound-interest': { x: 1610, y: 1040, interactionRadius: 120, label: '时间与复利' },
+  'clear-thinking': { x: 980, y: 1080, interactionRadius: 120, label: '清晰思考' },
+  decision: { x: 770, y: 1110, interactionRadius: 120, label: '决策路口' },
+  'long-term': { x: 1390, y: 1130, interactionRadius: 120, label: '长期合作' },
+  peace: { x: 300, y: 1130, interactionRadius: 120, label: '安静长椅' },
+  health: { x: 600, y: 1180, interactionRadius: 120, label: '身体与健康' },
+  freedom: { x: 1200, y: 1210, interactionRadius: 120, label: '自由之门' },
+};
+
 const knowledge = (id, title, zoneId, position, propType, summary, detail, interactive = false) => ({
   id, type: 'knowledge', title, zoneId, position, propType, summary, detail, lesson: lessonsById[id],
+  world2d: world2dById[id],
   source: sourceById[id],
   narration: detail || summary,
   audio: '',
@@ -149,5 +165,15 @@ export const navalAlmanack = {
       { position: [-24, 2, -5], size: [3, 4, 24], kind: 'wall' },
       { position: [0, 2, -35], size: [30, 4, 2], kind: 'wall' },
     ],
+  },
+  world2d: {
+    width: 2304,
+    height: 1536,
+    padding: 72,
+    walkable: { left: 72, top: 980, right: 2232, bottom: 1464 },
+    spawn: { x: 1160, y: 1320 },
+    background: 'assets/backgrounds/naval-world-background-v1.png',
+    route: ['reading', 'specific-knowledge', 'desire'],
+    routeTitle: '第一章：判断与自由',
   },
 };
