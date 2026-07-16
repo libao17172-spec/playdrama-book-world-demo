@@ -12,9 +12,12 @@ const SUIT_MODEL_URL = `${import.meta.env.BASE_URL}assets/models/suit.gltf`;
 
 function v3(position) { return new THREE.Vector3(position[0], position[1], position[2]); }
 
-function isBlocked(position, pack) {
+function isBlocked(position, pack, cinematic = false) {
   const limit = pack.world.bounds;
   if (Math.abs(position.x) > limit || Math.abs(position.z) > limit) return true;
+  // The cinematic world uses a continuous illustrated street. Invisible
+  // procedural buildings must not create collisions the player cannot see.
+  if (cinematic) return false;
   for (const obstacle of pack.world.obstacles || []) {
     const [x, , z] = obstacle.position;
     const [w, , d] = obstacle.size;
@@ -69,7 +72,7 @@ function Player({ pack, paused, onZone, onDiscover, onNear, onInteract, onUpdate
 
   useEffect(() => {
     const down = (event) => {
-      if (['INPUT', 'TEXTAREA', 'BUTTON'].includes(event.target?.tagName)) return;
+      if (['INPUT', 'TEXTAREA'].includes(event.target?.tagName)) return;
       keys.current.add(event.key.toLowerCase());
       if (event.key.toLowerCase() === 'r') group.current.position.copy(safe.current);
       if (event.key.toLowerCase() === 'e') onInteract();
@@ -114,7 +117,7 @@ function Player({ pack, paused, onZone, onDiscover, onNear, onInteract, onUpdate
         right.set(Math.cos(yaw.current), 0, -Math.sin(yaw.current)).multiplyScalar(x);
         temp.copy(forward).add(right).normalize().multiplyScalar(Math.min(delta, 0.04) * 6.2);
         const candidate = group.current.position.clone().add(temp);
-        if (!isBlocked(candidate, pack)) {
+        if (!isBlocked(candidate, pack, cinematic)) {
           group.current.position.copy(candidate);
           safe.current.copy(candidate);
           body.current.rotation.y = Math.atan2(temp.x, temp.z);
