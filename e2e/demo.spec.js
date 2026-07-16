@@ -121,17 +121,40 @@ test('写实人物持续行走且三个场景知识节点都可以交互', async
 
   await page.keyboard.down('w');
   await expect(player).toHaveAttribute('data-moving', 'true');
-  await page.waitForTimeout(950);
+  await expect(player).toHaveAttribute('data-facing', 'away');
+  await page.waitForTimeout(8500);
   await page.screenshot({ path: shot('11-cinematic-walk-active') });
   const moving = JSON.parse(await page.getByTestId('player-position').textContent());
-  expect(moving[2]).toBeLessThan(start[2] - 2);
+  expect(moving[2]).toBeLessThan(-37);
   await page.keyboard.up('w');
   await expect(player).toHaveAttribute('data-moving', 'false');
 
+  await page.keyboard.down('s');
+  await expect(player).toHaveAttribute('data-facing', 'toward');
+  await page.waitForTimeout(700);
+  await page.screenshot({ path: shot('12-cinematic-turn-back') });
+  const returned = JSON.parse(await page.getByTestId('player-position').textContent());
+  expect(returned[2]).toBeGreaterThan(moving[2] + 2);
+  await page.keyboard.up('s');
+
+  await page.keyboard.down('d');
+  await expect(player).toHaveAttribute('data-facing', 'right');
+  await page.waitForTimeout(250);
+  await page.keyboard.up('d');
+  await page.keyboard.down('a');
+  await expect(player).toHaveAttribute('data-facing', 'left');
+  await page.waitForTimeout(250);
+  await page.keyboard.up('a');
+
   for (const name of ['欲望', '阅读', '专长']) {
     await page.getByRole('button', { name }).click();
-    await expect(page.getByRole('dialog')).toBeVisible();
-    await expect(page.getByRole('dialog')).toContainText(name);
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toContainText(name);
+    await expect(dialog.getByRole('heading', { name: '理解它' })).toBeVisible();
+    await expect(dialog.getByRole('heading', { name: '放进现实' })).toBeVisible();
+    await expect(dialog.getByRole('heading', { name: '现在可以做什么' })).toBeVisible();
+    expect((await dialog.textContent()).length).toBeGreaterThan(300);
     await page.getByRole('button', { name: '关闭详情' }).click();
   }
 });

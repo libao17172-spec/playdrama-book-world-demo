@@ -13,11 +13,11 @@ const SUIT_MODEL_URL = `${import.meta.env.BASE_URL}assets/models/suit.gltf`;
 function v3(position) { return new THREE.Vector3(position[0], position[1], position[2]); }
 
 function isBlocked(position, pack, cinematic = false) {
+  // The illustrated street has no visible geometry that can justify a wall.
+  // Keep its exploration plane continuous in every direction.
+  if (cinematic) return false;
   const limit = pack.world.bounds;
   if (Math.abs(position.x) > limit || Math.abs(position.z) > limit) return true;
-  // The cinematic world uses a continuous illustrated street. Invisible
-  // procedural buildings must not create collisions the player cannot see.
-  if (cinematic) return false;
   for (const obstacle of pack.world.obstacles || []) {
     const [x, , z] = obstacle.position;
     const [w, , d] = obstacle.size;

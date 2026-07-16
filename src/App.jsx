@@ -9,13 +9,19 @@ import { WorldCanvas } from './components/WorldCanvas.jsx';
 
 const progressStore = typeof window !== 'undefined' ? createProgressStore(window.localStorage) : null;
 const navalBackground = `${import.meta.env.BASE_URL}assets/backgrounds/naval-world-background-v1.png`;
-const navalPlayer = `${import.meta.env.BASE_URL}assets/characters/victorian-player-walkcycle-v1.png`;
+const navalPlayers = {
+  away: `${import.meta.env.BASE_URL}assets/characters/victorian-player-walkcycle-v1.png`,
+  toward: `${import.meta.env.BASE_URL}assets/characters/victorian-player-walkcycle-front-v1.png`,
+  right: `${import.meta.env.BASE_URL}assets/characters/victorian-player-walkcycle-side-v1.png`,
+  left: `${import.meta.env.BASE_URL}assets/characters/victorian-player-walkcycle-side-v1.png`,
+};
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
 function DetailModal({ entity, zone, onClose, onPlay }) {
+  const lesson = entity.lesson || {};
   return <div className="modal detail-modal" role="dialog" aria-label={`${entity.title}知识详情`}>
     <div className="detail-visual" style={{ '--detail-color': zone.color }}><span className="detail-orbit" /><div className="detail-glyph">{entity.title.slice(0, 1)}</div><small>{zone.name} · {entity.type.toUpperCase()}</small></div>
-    <div className="detail-content"><button className="icon-button detail-close" onClick={onClose} aria-label="关闭详情">×</button><span className="eyebrow">深入探索 / DEEP DIVE</span><h2>{entity.title}</h2><blockquote>{entity.summary}</blockquote><p>{entity.detail || entity.summary}</p><div className="source-box"><span>内容出处</span><p>{entity.source}</p></div><div className="detail-actions"><button className="primary-button compact" onClick={() => onPlay(entity)}>显示讲解文字 <span>文</span></button><button className="ghost-button" onClick={onClose}>返回世界</button></div><small className="voice-note">豆包语音接口已预留，取得模型权限后接入。</small></div>
+    <div className="detail-content"><button className="icon-button detail-close" onClick={onClose} aria-label="关闭详情">×</button><span className="eyebrow">深入探索 / DEEP DIVE</span><h2>{entity.title}</h2><blockquote>{entity.summary}</blockquote><section className="lesson-section"><h3>理解它</h3><p>{lesson.explanation || entity.detail || entity.summary}</p></section>{lesson.example && <section className="lesson-section"><h3>放进现实</h3><p>{lesson.example}</p></section>}{lesson.action && <section className="lesson-section action"><h3>现在可以做什么</h3><p>{lesson.action}</p></section>}{lesson.question && <section className="lesson-question"><span>想一想</span><p>{lesson.question}</p></section>}<div className="source-box"><span>内容出处</span><p>{entity.source}</p></div><div className="detail-actions"><button className="primary-button compact" onClick={() => onPlay(entity)}>显示讲解文字 <span>文</span></button><button className="ghost-button" onClick={onClose}>返回世界</button></div><small className="voice-note">豆包语音接口已预留，取得模型权限后接入。</small></div>
   </div>;
 }
 
@@ -40,6 +46,7 @@ export function App() {
   const [guidance, setGuidance] = useState(null);
   const [player, setPlayer] = useState({ position: pack.spawn, yaw: 0 });
   const [playerMoving, setPlayerMoving] = useState(false);
+  const [playerFacing, setPlayerFacing] = useState('away');
   const [resetSignal, setResetSignal] = useState(0);
   const [audioState, setAudioState] = useState({ activeId: null, status: 'idle', text: '' });
   const [toast, setToast] = useState('');
@@ -96,7 +103,8 @@ export function App() {
   useEffect(() => {
     const movementKeys = new Set();
     const moveKeys = new Set(['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright']);
-    const down = (event) => { const key = event.key.toLowerCase(); if (moveKeys.has(key)) { movementKeys.add(key); setPlayerMoving(true); } };
+    const facingByKey = { w: 'away', arrowup: 'away', s: 'toward', arrowdown: 'toward', a: 'left', arrowleft: 'left', d: 'right', arrowright: 'right' };
+    const down = (event) => { const key = event.key.toLowerCase(); if (moveKeys.has(key)) { movementKeys.add(key); setPlayerFacing(facingByKey[key]); setPlayerMoving(true); } };
     const up = (event) => { movementKeys.delete(event.key.toLowerCase()); if (!movementKeys.size) setPlayerMoving(false); };
     const stop = () => { movementKeys.clear(); setPlayerMoving(false); };
     window.addEventListener('keydown', down); window.addEventListener('keyup', up); window.addEventListener('blur', stop);
@@ -116,7 +124,7 @@ export function App() {
     <output data-testid="world-state" hidden>{JSON.stringify({ packId: pack.id, zoneId: currentZone?.id || null, nearbyId: nearby?.id || null, discovered: progress.discovered, deepened: progress.deepened, guidanceId: guidance?.id || null })}</output>
     {cinematic && <div className="cinematic-backdrop" aria-hidden="true" style={{ backgroundImage: `url(${navalBackground})`, transform: `translate3d(${sceneOffsetX}%, 0, 0) scale(${1.035 + sceneDepth})` }} />}
     <WorldCanvas pack={pack} paused={paused} nearby={nearby} guidance={guidance} onZone={handleZone} onDiscover={handleDiscover} onNear={handleNear} onInteract={interactNearby} onPropClick={handlePropClick} onPlayerUpdate={setPlayer} resetSignal={resetSignal} cinematic={cinematic} />
-    {cinematic && <div className={`cinematic-player ${playerMoving ? 'moving' : ''}`} data-testid="cinematic-player" data-moving={playerMoving ? 'true' : 'false'} aria-hidden="true"><div className="cinematic-player-sprite" style={{ backgroundImage: `url(${navalPlayer})` }} /></div>}
+    {cinematic && <div className={`cinematic-player facing-${playerFacing} ${playerMoving ? 'moving' : ''}`} data-testid="cinematic-player" data-moving={playerMoving ? 'true' : 'false'} data-facing={playerFacing} aria-hidden="true"><div className="cinematic-player-sprite" style={{ backgroundImage: `url(${navalPlayers[playerFacing]})` }} /></div>}
     {cinematic && <div className="cinematic-hotspots" aria-label="场景知识节点">
       <button className="scene-hotspot scene-hotspot-clock" onClick={() => openDetail(pack.entities[8])}><i /> <span>欲望</span></button>
       <button className="scene-hotspot scene-hotspot-library" onClick={() => openDetail(pack.entities[5])}><i /> <span>阅读</span></button>
